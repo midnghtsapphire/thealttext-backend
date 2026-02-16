@@ -1,0 +1,86 @@
+###############################################################################
+# TheAltText Backend — Docker Compose (Standalone)
+# Includes PostgreSQL 16, Redis, and the FastAPI backend.
+# A GlowStarLabs product by Audrey Evans
+# https://meetaudreyevans.com
+###############################################################################
+version: "3.9"
+
+services:
+  # ── PostgreSQL 16 Database ─────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: thealttext-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-thealttext}
+      POSTGRES_USER: ${POSTGRES_USER:-thealttext}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thealttext}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (Task Queue) ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: thealttext-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: thealttext-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-thealttext}:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/${POSTGRES_DB:-thealttext}
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-real-secret-key-in-production}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - STRIPE_MODE=${STRIPE_MODE:-test}
+      - STRIPE_TEST_SECRET_KEY=${STRIPE_TEST_SECRET_KEY}
+      - STRIPE_TEST_PUBLISHABLE_KEY=${STRIPE_TEST_PUBLISHABLE_KEY}
+      - STRIPE_TEST_WEBHOOK_SECRET=${STRIPE_TEST_WEBHOOK_SECRET}
+      - STRIPE_TEST_PRO_PRICE_ID=${STRIPE_TEST_PRO_PRICE_ID}
+      - STRIPE_TEST_ENTERPRISE_PRICE_ID=${STRIPE_TEST_ENTERPRISE_PRICE_ID}
+      - STRIPE_LIVE_SECRET_KEY=${STRIPE_LIVE_SECRET_KEY}
+      - STRIPE_LIVE_PUBLISHABLE_KEY=${STRIPE_LIVE_PUBLISHABLE_KEY}
+      - STRIPE_LIVE_WEBHOOK_SECRET=${STRIPE_LIVE_WEBHOOK_SECRET}
+      - STRIPE_LIVE_PRO_PRICE_ID=${STRIPE_LIVE_PRO_PRICE_ID}
+      - STRIPE_LIVE_ENTERPRISE_PRICE_ID=${STRIPE_LIVE_ENTERPRISE_PRICE_ID}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - REDIS_URL=redis://redis:6379/0
+      - BULK_MAX_IMAGES=${BULK_MAX_IMAGES:-100}
+      - ECOMMERCE_MODE_ENABLED=${ECOMMERCE_MODE_ENABLED:-true}
+      - WEBHOOK_ENABLED=${WEBHOOK_ENABLED:-true}
+      - COMPETITOR_COMPARISON_ENABLED=${COMPETITOR_COMPARISON_ENABLED:-true}
+      - CARBON_TRACKING_ENABLED=${CARBON_TRACKING_ENABLED:-true}
+    ports:
+      - "8000:8000"
+    volumes:
+      - upload_data:/app/uploads
+
+volumes:
+  postgres_data:
+    driver: local
+  upload_data:
+    driver: local

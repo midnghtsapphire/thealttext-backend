@@ -1,0 +1,1 @@
+"""TheAltText — Pydantic Schemas"""
