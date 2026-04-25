@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     BRAND_AUTHOR: str = "Audrey Evans"
 
     # ── Stripe Helper Properties ─────────────────────────────────────────
+    # ── Monitoring ─────────────────────────────────────────────────────────────
+    SENTRY_DSN: str = ""
+    
     @property
     def active_stripe_secret_key(self) -> str:
         if self.STRIPE_MODE == "live":
