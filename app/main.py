@@ -11,6 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.sentry import init_sentry
+from app.middleware.rate_limiter import limiter
+from app.api.health import router as health_router
 from app.api.routes import (
     auth, images, scanner, reports, dashboard,
     billing, developer,
@@ -35,6 +38,9 @@ async def lifespan(app: FastAPI):
     logger.info(f"E-commerce mode: {'ON' if settings.ECOMMERCE_MODE_ENABLED else 'OFF'}")
     logger.info(f"Webhooks: {'ON' if settings.WEBHOOK_ENABLED else 'OFF'}")
     logger.info(f"Competitor comparison: {'ON' if settings.COMPETITOR_COMPARISON_ENABLED else 'OFF'}")
+    
+    # Initialize Sentry if DSN is configured
+    init_sentry(settings.SENTRY_DSN, settings.ENVIRONMENT)
 
     # Create tables
     async with engine.begin() as conn:
@@ -59,6 +65,9 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
+
+# ── Rate Limiter ─────────────────────────────────────────────────────────────
+app.state.limiter = limiter
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
 origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
@@ -85,6 +94,9 @@ app.include_router(ecommerce.router, prefix="/api/ecommerce", tags=["E-commerce 
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["Webhooks"])
 app.include_router(competitor.router, prefix="/api/competitor", tags=["Competitor Comparison"])
 app.include_router(gallery.router, prefix="/api/gallery", tags=["Gallery"])
+
+# ── Health Endpoints ───────────────────────────────────────────────────────
+app.include_router(health_router, prefix="/api", tags=["Health"])
 
 
 # ── Health Check ─────────────────────────────────────────────────────────────
