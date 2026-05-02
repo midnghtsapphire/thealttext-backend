@@ -225,3 +225,33 @@ Proprietary — GlowStarLabs / Audrey Evans
 - **Hub**: [meetaudreyevans.com](https://meetaudreyevans.com)
 - **Frontend**: [thealttext-frontend](https://github.com/MIDNGHTSAPPHIRE/thealttext-frontend)
 - **Original**: [thealttext](https://github.com/MIDNGHTSAPPHIRE/thealttext)
+
+---
+
+## Test
+
+| Feature | Status | Notes |
+|--------|--------|-------|
+| API Endpoints | ⚠️ Blocked | Needs PostgreSQL |
+| Image Analysis | ⚠️ Blocked | Needs database |
+| Auth | ⚠️ Blocked | Needs Supabase |
+| Build | ✅ Ready | `pip install -r requirements.txt` |
+
+**Infrastructure Blocker:** This backend requires PostgreSQL to run. See `.env.example` for required variables.
+
+---
+
+## Deployment
+
+**Production:** Requires PostgreSQL database (Supabase or self-hosted)
+
+**Setup:**
+1. Set up PostgreSQL database
+2. Configure environment variables
+3. Run migrations: `alembic upgrade head`
+4. Start server: `uvicorn app.main:app --reload`
+
+**Environment Required:**
+- `DATABASE_URL` — PostgreSQL connection string
+- `OPENROUTER_API_KEY` — For AI features
+- `SUPABASE_URL` and `SUPABASE_KEY` — If using Supabase
